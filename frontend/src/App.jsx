@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Elections from './pages/Elections';
+import ElectionDetails from './pages/ElectionDetails';
 import VotePage from './pages/VotePage';
 import Results from './pages/Results';
 import Admin from './pages/Admin';
@@ -24,34 +25,34 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/elections" element={<Elections />} />
-            <Route path="/elections/:id" element={<Elections />} />
-            <Route 
-              path="/elections/:id/vote" 
+            <Route path="/elections/:id" element={<ElectionDetails />} />
+            <Route
+              path="/elections/:id/vote"
               element={
                 <ProtectedRoute>
                   <VotePage />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route path="/results" element={<Results />} />
-            <Route 
-              path="/profile" 
+            <Route
+              path="/profile"
               element={
                 <ProtectedRoute>
                   <Profile />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin" 
+            <Route
+              path="/admin"
               element={
                 <ProtectedRoute adminOnly>
                   <Admin />
                 </ProtectedRoute>
-              } 
+              }
             />
           </Routes>
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
