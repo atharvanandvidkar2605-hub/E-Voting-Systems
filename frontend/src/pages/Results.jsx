@@ -59,9 +59,17 @@ const Results = () => {
 
   const getWinner = (electionResults) => {
     if (!electionResults?.results?.length) return null;
-    return electionResults.results.reduce((prev, current) => {
+    // Don't declare a winner if no votes were cast
+    if (electionResults.total_votes === 0) return null;
+
+    const winner = electionResults.results.reduce((prev, current) => {
       return (prev.votes > current.votes) ? prev : current;
     }, electionResults.results[0]);
+
+    // Don't declare a winner if the highest vote count is 0
+    if (winner.votes === 0) return null;
+
+    return winner;
   };
 
   if (loading) {

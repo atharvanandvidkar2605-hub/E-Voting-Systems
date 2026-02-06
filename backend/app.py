@@ -157,11 +157,9 @@ class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     election_id = db.Column(db.Integer, db.ForeignKey('elections.id'), nullable=False)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), nullable=False)
     transaction_hash = db.Column(db.String(66), unique=True, nullable=True)
     voted_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Note: We don't store which candidate to maintain vote secrecy
-    # The actual vote is only on the blockchain
 
 
 # ==================== Helper Functions ====================
@@ -359,6 +357,27 @@ def make_admin(user_id):
         'message': 'User is now an admin',
         'user': user.to_dict()
     })
+
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    """Delete a user (admin only)"""
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    if user.is_admin:
+        return jsonify({'error': 'Cannot delete admin users'}), 400
+    
+    # Delete user's votes first (foreign key constraint)
+    Vote.query.filter_by(user_id=user_id).delete()
+    
+    db.session.delete(user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User deleted successfully'})
 
 
 # ----- Election Routes -----
@@ -566,6 +585,7 @@ def cast_vote(election_id):
     vote = Vote(
         user_id=user_id,
         election_id=election_id,
+        candidate_id=candidate_id,
         transaction_hash=None  # Would be set after blockchain transaction
     )
     
@@ -609,17 +629,24 @@ def get_results(election_id):
     if now <=end_time:
         return jsonify({'error': 'Results are available only after the election ends'}), 400
     
-    # Get vote counts (in production, this would come from blockchain)
+    # Get vote counts
     results = []
     total_votes = Vote.query.filter_by(election_id=election_id).count()
     
     for candidate in election.candidates:
-        # In production, get actual vote counts from blockchain
+        vote_count = Vote.query.filter_by(
+            election_id=election_id,
+            candidate_id=candidate.id
+        ).count()
+        percentage = (vote_count / total_votes * 100) if total_votes > 0 else 0
         results.append({
             'candidate': candidate.to_dict(),
-            'votes': 0,  # Would be fetched from blockchain
-            'percentage': 0
+            'votes': vote_count,
+            'percentage': round(percentage, 1)
         })
+    
+    # Sort results by votes (highest first)
+    results.sort(key=lambda x: x['votes'], reverse=True)
     
     return jsonify({
         'election': election.to_dict(),

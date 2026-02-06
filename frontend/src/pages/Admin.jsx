@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { electionsAPI, adminAPI } from '../utils/api';
-import { 
+import {
   Shield, Users, Vote, Plus, CheckCircle, XCircle,
   Calendar, Clock, Trash2, Edit, UserCheck, AlertCircle
 } from 'lucide-react';
@@ -14,6 +14,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [selectedElection, setSelectedElection] = useState(null);
 
   // Form states
@@ -74,23 +76,23 @@ const Admin = () => {
   //   }
   // };
   const setCurrentTime = () => {
-  const now = new Date();
-  
-  // This formats the date correctly for the <input type="datetime-local">
-  // It results in "YYYY-MM-DDTHH:mm"
-  const offset = now.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(now - offset).toISOString().slice(0, 16);
-  
-  setElectionForm({
-    ...electionForm,
-    start_time: localISOTime,
-    // Default end time to 1 hour from now
-    end_time: new Date(now - offset + 3600000).toISOString().slice(0, 16)
-  });
-};
+    const now = new Date();
+
+    // This formats the date correctly for the <input type="datetime-local">
+    // It results in "YYYY-MM-DDTHH:mm"
+    const offset = now.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(now - offset).toISOString().slice(0, 16);
+
+    setElectionForm({
+      ...electionForm,
+      start_time: localISOTime,
+      // Default end time to 1 hour from now
+      end_time: new Date(now - offset + 3600000).toISOString().slice(0, 16)
+    });
+  };
   const handleCreateElection = async (e) => {
     e.preventDefault();
-    
+
     // Convert local HTML date string to ISO format for Python compatibility
     const formattedForm = {
       ...electionForm,
@@ -141,6 +143,19 @@ const Admin = () => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      await adminAPI.deleteUser(userToDelete.id);
+      toast.success('User deleted successfully');
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to delete user');
+    }
+  };
+
   const formatDateTime = (dateString) => {
     return new Date(dateString).toLocaleString('en-IN', {
       day: 'numeric',
@@ -176,11 +191,10 @@ const Admin = () => {
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab('elections')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'elections'
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'elections'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <div className="flex items-center space-x-2">
                 <Vote className="w-5 h-5" />
@@ -189,11 +203,10 @@ const Admin = () => {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'users'
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'users'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <div className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
@@ -272,11 +285,10 @@ const Admin = () => {
                             </button>
                             <button
                               onClick={() => handleToggleElection(election.id)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                election.is_active
+                              className={`p-2 rounded-lg transition-colors ${election.is_active
                                   ? 'text-red-600 hover:bg-red-50'
                                   : 'text-green-600 hover:bg-green-50'
-                              }`}
+                                }`}
                               title={election.is_active ? 'Deactivate' : 'Activate'}
                             >
                               {election.is_active ? (
@@ -300,7 +312,7 @@ const Admin = () => {
         {activeTab === 'users' && (
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-6">All Users</h2>
-            
+
             {users.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
                 <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -347,15 +359,29 @@ const Admin = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          {!user.is_verified && (
-                            <button
-                              onClick={() => handleVerifyVoter(user.id)}
-                              className="flex items-center space-x-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-                            >
-                              <UserCheck className="w-4 h-4" />
-                              <span>Verify</span>
-                            </button>
-                          )}
+                          <div className="flex items-center space-x-2">
+                            {!user.is_verified && (
+                              <button
+                                onClick={() => handleVerifyVoter(user.id)}
+                                className="flex items-center space-x-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                              >
+                                <UserCheck className="w-4 h-4" />
+                                <span>Verify</span>
+                              </button>
+                            )}
+                            {!user.is_admin && (
+                              <button
+                                onClick={() => {
+                                  setUserToDelete(user);
+                                  setShowDeleteModal(true);
+                                }}
+                                className="flex items-center space-x-1 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Delete</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -501,6 +527,44 @@ const Admin = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {showDeleteModal && userToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fade-in">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Delete User</h3>
+                <p className="text-gray-600">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete <strong>{userToDelete.full_name}</strong> ({userToDelete.email})?
+              All their votes will also be deleted.
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setUserToDelete(null);
+                }}
+                className="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete User
+              </button>
+            </div>
           </div>
         </div>
       )}

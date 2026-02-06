@@ -1,6 +1,28 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
 .env
 .venv/
+venv/
+*.db
+
+# IDEs
 .idea/
 .vscode/
+*.swp
+*.swo
+
+# Node
+node_modules/
+dist/
+build/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

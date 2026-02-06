@@ -85,6 +85,7 @@ export const adminAPI = {
   getUsers: () => api.get('/admin/users'),
   verifyVoter: (userId) => api.post(`/admin/verify-voter/${userId}`),
   makeAdmin: (userId) => api.post(`/admin/make-admin/${userId}`),
+  deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
 };
 
 // Blockchain API
