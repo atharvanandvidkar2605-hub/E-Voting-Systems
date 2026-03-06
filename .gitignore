@@ -26,3 +26,10 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Nested repos / clones
+E-Voting-Systems/
+{contracts,backend,frontend/
+
+# Database instance
+instance/
